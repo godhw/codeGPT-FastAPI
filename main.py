@@ -1,24 +1,15 @@
 import torch
-import io
 import time
 import threading
-import random
+import logging
 
 from transformers import AutoModelForCausalLM, AutoTokenizer
-from fastapi import FastAPI, Request, Response, HTTPException
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.encoders import jsonable_encoder
-from fastapi.templating import Jinja2Templates
-from typing import Optional, Dict
 from queue import Queue, Empty
-from fastapi.staticfiles import StaticFiles
-from transformers.utils.dummy_pt_objects import BLENDERBOT_PRETRAINED_MODEL_ARCHIVE_LIST
 
 app = FastAPI()
-#app.mount("/static", StaticFiles(directory="static"), name="static")
-
-templates = Jinja2Templates(directory="templates")
-
+logging.basicConfig(level=logging.INFO)
 requests_queue = Queue()
 BATCH_SIZE = 2
 CHECK_INTERVAL = 0.1
@@ -40,6 +31,7 @@ def handle_requests_by_batch():
 
             for requests in request_batch:
                 try:
+                    logging.info("correct")
                     requests["output"] = make_code(requests['input'][0], requests['input'][1])
 
                 except Exception as e:
@@ -54,14 +46,13 @@ def make_code(code, max_length):
         max_length = max_length if max_length > 0 else 1
 
         gen_ids = model.generate(input_ids, max_length=max_length)
-
         result = dict()
 
         result["result"] = tokenizer.decode(gen_ids[0], skip_special_tokens=True)
 
         return result
     except Exception as e:
-        print('Error occur in script gen', e)
+        logging.error('Error occur in script gen', e)
         return jsonable_encoder({'error': e}), 500
 
 @app.post("/generate")
@@ -78,7 +69,6 @@ async def generate(request: Request):
     args.append(max_length)
 
     req = {'input': args}
-
     requests_queue.put(req)
 
     while 'output' not in req:
@@ -94,8 +84,3 @@ async def generate(request: Request):
 @app.get("/healthz", status_code=200)
 def check_health():
     return "healthy"
-'''
-@app.get("/", response_class=HTMLResponse)
-def index(request: Request):
-    return templates.TemplateResponse("index.html", {'request': request})
-'''
