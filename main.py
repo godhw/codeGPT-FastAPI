@@ -17,7 +17,7 @@ CHECK_INTERVAL = 0.1
 tokenizer = AutoTokenizer.from_pretrained("microsoft/CodeGPT-small-py")
 model = AutoModelForCausalLM.from_pretrained("microsoft/CodeGPT-small-py")
 
-device = torch.device('cpu')
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 def handle_requests_by_batch():
     while True:
