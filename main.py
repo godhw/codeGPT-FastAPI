@@ -15,9 +15,9 @@ requests_queue = model.requests_queue
 APIRequest = config.APIRequest
 APIResponse = config.APIResponse
 
-
 @app.on_event("startup")
 async def startup_event():
+
     logging.info("start model thread")
     threading.Thread(target=model.handle_requests_by_batch).start()
     logging.info("thread start complete")
@@ -39,6 +39,7 @@ def generate(request: APIRequest)->APIResponse:
     args.append(max_length)
 
     req = {'input': args}
+
     logging.info("input: ", req_data)
     requests_queue.put(req)
 
