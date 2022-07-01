@@ -26,6 +26,7 @@ async def startup_event():
 
 @app.post("/generate")
 def generate(request: APIRequest)->APIResponse:
+    # requests_queue is full?
     if requests_queue.qsize() > model.BATCH_SIZE:
         raise HTTPException(status_code=429, detail="Too Many Requests")
 
@@ -33,6 +34,7 @@ def generate(request: APIRequest)->APIResponse:
     args = []
     
     code = req_data['code']
+    # type check
     max_length = int(req_data['max_length'])
 
     args.append(code)
@@ -41,14 +43,18 @@ def generate(request: APIRequest)->APIResponse:
     req = {'input': args}
 
     logging.info("input: ", req_data)
+
+    # put the request to queue
     requests_queue.put(req)
 
+    # wait for return
     while 'output' not in req:
         time.sleep(model.CHECK_INTERVAL)
 
     output = req['output']
     logging.info("output: ", output)
 
+    # output check
     if "error" in output:
         raise HTTPException(status_code=500, detail=f"Internal server error: {output['error']}")
     else:
