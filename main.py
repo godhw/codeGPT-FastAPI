@@ -9,8 +9,14 @@ import model
 
 app = FastAPI()
 
-logging.basicConfig(level=logging.INFO)
 requests_queue = model.requests_queue
+# logger setting
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+stream_handler = logging.StreamHandler()
+stream_handler.setFormatter(formatter)
+logger.addHandler(stream_handler)
 
 APIRequest = config.APIRequest
 APIResponse = config.APIResponse
@@ -18,11 +24,11 @@ APIResponse = config.APIResponse
 @app.on_event("startup")
 async def startup_event():
 
-    logging.info("start model thread")
+    logger.info("start model thread")
     threading.Thread(target=model.handle_requests_by_batch).start()
-    logging.info("thread start complete")
+    logger.info("thread start complete")
 
-    logging.info("start server")
+    logger.info("start server")
 
 @app.post("/generate")
 def generate(request: APIRequest)->APIResponse:
@@ -42,7 +48,7 @@ def generate(request: APIRequest)->APIResponse:
 
     req = {'input': args}
 
-    logging.info("input: ", req_data)
+    logger.info(f"input: {req_data}")
 
     # put the request to queue
     requests_queue.put(req)
@@ -52,7 +58,7 @@ def generate(request: APIRequest)->APIResponse:
         time.sleep(model.CHECK_INTERVAL)
 
     output = req['output']
-    logging.info("output: ", output)
+    logger.info(f"output: {output}")
 
     # output check
     if "error" in output:
